@@ -34,6 +34,7 @@ class _Label {
   double top;
   double left;
   double rotate;
+  String text = "Dope";
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -52,52 +53,51 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Random2 rand = Random2(0);
 
-  void loop(){
-      var label = _Label();    
-      label.color = Color.fromARGB(
-          255, 
-          (rand.nextDouble()*255).round(),
-          (rand.nextDouble()*255).round(),
-          (rand.nextDouble()*255).round());
-      label.top = rand.nextDouble()*_height;
-      label.left = rand.nextDouble()*_width;
-      label.rotate = rand.nextDouble()*pi*2;
+  var texts = <String>["dOpe", "Dope", "doPe", "dopE"];
+
+  void changeLoop() {
+    if (_processed > _max) {
+      var changeLabel = _labels[_processed % _max];
+      changeLabel.text = texts[(rand.nextDouble() * 4).floor()];
+    } else {
+      var label = _Label();
+      label.color = Color.fromARGB(255, (rand.nextDouble() * 255).round(),
+          (rand.nextDouble() * 255).round(), (rand.nextDouble() * 255).round());
+      label.top = rand.nextDouble() * _height;
+      label.left = rand.nextDouble() * _width;
+      label.rotate = rand.nextDouble() * pi * 2;
       label.id = _processed;
-      _processed++;
-
-      if (_processed > _max){
-        _labels.removeAt(0);
-
-        if (_prevElapsed == null) {
-          _prevElapsed = _sw.elapsedMilliseconds;
-          _prevCount = _processed;
-        }
-        
-        var diff = _sw.elapsedMilliseconds - _prevElapsed;
-        
-        if (diff > 500) {
-          _prevElapsed = _sw.elapsedMilliseconds;
-          var val = (_processed-_prevCount)/diff*1000;
-          _dopes = val.toStringAsFixed(2) + ' Dopes/s';
-          _accum += val;
-          _accumN++;
-          _prevElapsed = _sw.elapsedMilliseconds;
-          _prevCount = _processed;
-        }
-      }
       _labels.add(label);
+    }
 
-      setState(() {
-        if (_started){
-          Timer.run(loop);
-        }
-        else{
-          _dopes = (_accum/_accumN).toStringAsFixed(2) + ' Dopes/s (AVG)';
-        }
-      });
+    if (_prevElapsed == null) {
+      _prevElapsed = _sw.elapsedMilliseconds;
+      _prevCount = _processed;
+    }
+
+    var diff = _sw.elapsedMilliseconds - _prevElapsed;
+
+    if (diff > 500) {
+      _prevElapsed = _sw.elapsedMilliseconds;
+      var val = (_processed - _prevCount) / diff * 1000;
+      _dopes = val.toStringAsFixed(2) + ' Dopes/s';
+      _accum += val;
+      _accumN++;
+      _prevElapsed = _sw.elapsedMilliseconds;
+      _prevCount = _processed;
+    }
+    _processed++;
+
+    setState(() {
+      if (_started) {
+        Timer.run(changeLoop);
+      } else {
+        _dopes = (_accum / _accumN).toStringAsFixed(2) + ' Dopes/s (AVG)';
+      }
+    });
   }
 
-  void _buttonClick() {
+  void _buttonChangeClick() {
     setState(() {
       if (!_started) {
         _started = _startedOnce = true;
@@ -106,16 +106,73 @@ class _MyHomePageState extends State<MyHomePage> {
         _prevElapsed = null;
         _accum = 0;
         _accumN = 0;
+      } else
+        _started = false;
+
+      Timer.run(changeLoop);
+    });
+  }
+
+  void buildLoop() {
+    var label = _Label();
+    label.color = Color.fromARGB(255, (rand.nextDouble() * 255).round(),
+        (rand.nextDouble() * 255).round(), (rand.nextDouble() * 255).round());
+    label.top = rand.nextDouble() * _height;
+    label.left = rand.nextDouble() * _width;
+    label.rotate = rand.nextDouble() * pi * 2;
+    label.id = _processed;
+    _processed++;
+
+    if (_processed > _max) {
+      _labels.removeAt(0);
+
+      if (_prevElapsed == null) {
+        _prevElapsed = _sw.elapsedMilliseconds;
+        _prevCount = _processed;
       }
-      else _started = false;
-      
-      Timer.run(loop);
+
+      var diff = _sw.elapsedMilliseconds - _prevElapsed;
+
+      if (diff > 500) {
+        _prevElapsed = _sw.elapsedMilliseconds;
+        var val = (_processed - _prevCount) / diff * 1000;
+        _dopes = val.toStringAsFixed(2) + ' Dopes/s';
+        _accum += val;
+        _accumN++;
+        _prevElapsed = _sw.elapsedMilliseconds;
+        _prevCount = _processed;
+      }
+    }
+    _labels.add(label);
+
+    setState(() {
+      if (_started) {
+        Timer.run(buildLoop);
+      } else {
+        _dopes = (_accum / _accumN).toStringAsFixed(2) + ' Dopes/s (AVG)';
+      }
+    });
+  }
+
+  void _buttonBuildClick() {
+    setState(() {
+      if (!_started) {
+        _started = _startedOnce = true;
+        _dopes = 'Warming up..';
+        _sw.start();
+        _prevElapsed = null;
+        _accum = 0;
+        _accumN = 0;
+      } else
+        _started = false;
+
+      Timer.run(buildLoop);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_width == null){
+    if (_width == null) {
       _width = MediaQuery.of(context).size.width;
       _height = MediaQuery.of(context).size.height;
     }
@@ -124,40 +181,59 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _labels.forEach((element) {
       children.add(Transform(
-        transform: Matrix4.translationValues(element.left, element.top, 0)..rotateZ(element.rotate),
-        child: Text('Dope', style: TextStyle(color: element.color)),
+        transform: Matrix4.translationValues(element.left, element.top, 0)
+          ..rotateZ(element.rotate),
+        child: Text(element.text, style: TextStyle(color: element.color)),
         key: ValueKey(element.id),
       ));
     });
 
     if (_startedOnce)
-      children.add(
-        Align(
+      children.add(Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: EdgeInsets.all(25.0), 
-            child: 
-            Container(
-              padding: EdgeInsets.all(7.0),
-              color: Colors.red,
-              child: Text('$_dopes', style: TextStyle(color: Colors.white, backgroundColor: Colors.red))
-          )
-        )
-      ));
+              padding: EdgeInsets.all(25.0),
+              child: Container(
+                  padding: EdgeInsets.all(7.0),
+                  color: Colors.red,
+                  child: Text('$_dopes',
+                      style: TextStyle(
+                          color: Colors.white,
+                          backgroundColor: Colors.red))))));
 
     return Scaffold(
-      body: 
-        Stack(
+        body: Stack(
           children: children,
         ),
-      
-      floatingActionButton: FlatButton(
-        onPressed: _buttonClick,
-        color: !_started ? Colors.green : Colors.red,
-        textColor: Colors.white,
-        child: !_started ? Text('@ Start') : Text('@ Stop') ,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat
-    );
+        floatingActionButton: Row(
+          children: [
+            TextButton(
+              onPressed: _buttonBuildClick,
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(color: Colors.white),
+                backgroundColor: !_started ? Colors.green : Colors.red,
+              ),
+              child: !_started ? Text('@ Build') : Text('@ Stop'),
+            ),
+            TextButton(
+              onPressed: _buttonChangeClick,
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(color: Colors.white),
+                backgroundColor: !_started ? Colors.green : Colors.red,
+              ),
+              child: !_started ? Text('@ Change') : Text('@ Stop'),
+            ),
+          ],
+          mainAxisAlignment: MainAxisAlignment.center,
+        ),
+        // floatingActionButton: TextButton(
+        //   onPressed: _buttonBuildClick,
+        //   style: TextButton.styleFrom(
+        //     textStyle: const TextStyle(color: Colors.white),
+        //     backgroundColor: !_started ? Colors.green : Colors.red,
+        //   ),
+        //   child: !_started ? Text('@ Build') : Text('@ Stop'),
+        // ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
 }
