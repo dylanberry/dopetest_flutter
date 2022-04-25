@@ -11,6 +11,12 @@
       "flutterMode" : "profile"
     },
     {
+      "name": "Flutter Release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode" : "release"
+    },
+    {
       "name": "Flutter Debug CanvasKit",
       "request": "launch",
       "type": "dart",
